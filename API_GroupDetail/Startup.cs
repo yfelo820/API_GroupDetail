@@ -1,4 +1,5 @@
 using API_GroupDetail.DB.Context;
+using API_GroupDetail.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -29,6 +30,7 @@ namespace API_GroupDetail
         {
             services.AddDbContext<SchoolsDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("SchoolsConnection")));
             services.AddControllers();
+            IoC.AddDependency(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
