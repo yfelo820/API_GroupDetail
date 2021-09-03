@@ -13,39 +13,37 @@ namespace API_GroupDetail.Services
     {
         private readonly ISchoolsRepository<Group> _groups;
         private readonly ISchoolsRepository<Teacher> _teachers;
+        private readonly ISchoolsRepository<StudentGroup> _students;
 
-        public MasterService(ISchoolsRepository<Group> groups, ISchoolsRepository<Teacher> teachers)
+
+        public MasterService(ISchoolsRepository<Group> groups, 
+                             ISchoolsRepository<Teacher> teachers,
+                             ISchoolsRepository<StudentGroup> students)
         {
             _groups = groups;
             _teachers = teachers;
+            _students = students;
         }
 
         public async Task<MasterResponse> GetMasterResponse(Guid groupId, string username)
-        {    
-            return (MasterResponse)(await _groups.Find(b => b.Id == groupId)).Select(async teacher =>
-            {
-                var teacherName = (await _teachers.Find(b => b.Email == username)).Select(b => b.Name + " " + b.Surnames).First();
-                return new MasterResponse
-                {
-                    UserName = teacherName,
-                   GroupName = teacher.Name,
-                 SubjectName = teacher.SubjectKey                    
-                };
-            });  /*
-
-            var groupNameAndSubject = (await _groups.Find(b => b.Id == groupId))
+        {  
+           var groupNameAndSubject = (await _groups.Find(b => b.Id == groupId))
                                       .Select(nameAndSubject => new
                                       {
                                           name = nameAndSubject.Name,
                                           subject = nameAndSubject.SubjectKey
                                       }).First();
 
+            var name = (await _teachers.Find(b => b.Email == username)).Select(b => b.Name+" "+b.Surnames).FirstOrDefault();
+            var students = (await _students.Find(b => b.GroupId == groupId));
+
             return new MasterResponse
             {
-                GroupName = groupNameAndSubject.name,
-                SubjectName = groupNameAndSubject.subject.ToUpper(),
-                UserName = "Yosmani R. Claro Merino"
-            };*/
+                    GroupName = groupNameAndSubject.name.ToUpper(),
+                  SubjectName = groupNameAndSubject.subject.ToUpper(),
+                     UserName = name.ToUpper(),
+                StudentsCount = students.Count
+            };
         }
     }
 }

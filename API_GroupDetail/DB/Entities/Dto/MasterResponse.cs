@@ -10,5 +10,6 @@ namespace API_GroupDetail.DB.Entities.Dto
         public string GroupName { get; set; }
         public string UserName { get; set; }
         public string SubjectName { get; set; }
+        public int StudentsCount { get; set; }
     }
 }
