@@ -8,6 +8,6 @@ namespace API_GroupDetail.Interfaces
 {
     public interface IMasterService
     {
-        Task<MasterResponse> GetMasterResponse(Guid groupId, string username);
+        Task<MasterResponse> GetMasterResponse(Guid groupId, string username, int session);
     }
 }

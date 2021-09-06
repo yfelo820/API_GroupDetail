@@ -17,9 +17,9 @@ namespace API_GroupDetail.Controllers
         public MasterController(IMasterService masterService) => _masterService = masterService;
         
         [HttpGet]
-        public async Task<IActionResult> GetGroupDetail([FromQuery] Guid groupId, [FromQuery] string username)
+        public async Task<IActionResult> GetGroupDetail([FromQuery] Guid groupId, [FromQuery] string username, [FromQuery] int session)
         {
-            return Ok(await _masterService.GetMasterResponse(groupId, username));
+            return Ok(await _masterService.GetMasterResponse(groupId, username, session));
         }
         
     }

@@ -14,24 +14,27 @@ namespace API_GroupDetail.Services
         private readonly ISchoolsRepository<Group> _groups;
         private readonly ISchoolsRepository<Teacher> _teachers;
         private readonly ISchoolsRepository<StudentGroup> _students;
-
+        private readonly ISchoolsRepository<StudentAnswer> _answers;
 
         public MasterService(ISchoolsRepository<Group> groups, 
                              ISchoolsRepository<Teacher> teachers,
-                             ISchoolsRepository<StudentGroup> students)
+                             ISchoolsRepository<StudentGroup> students,
+                             ISchoolsRepository<StudentAnswer> answers)
         {
             _groups = groups;
             _teachers = teachers;
             _students = students;
+            _answers = answers;
         }
 
-        public async Task<MasterResponse> GetMasterResponse(Guid groupId, string username)
+        public async Task<MasterResponse> GetMasterResponse(Guid groupId, string username, int session)
         {  
-           var groupNameAndSubject = (await _groups.Find(b => b.Id == groupId))
-                                      .Select(nameAndSubject => new
+           var groupNameSubjectCourse = (await _groups.Find(b => b.Id == groupId))
+                                      .Select(nameSubjectCourse => new
                                       {
-                                          name = nameAndSubject.Name,
-                                          subject = nameAndSubject.SubjectKey
+                                          name = nameSubjectCourse.Name,
+                                          subject = nameSubjectCourse.SubjectKey,
+                                          course = nameSubjectCourse.Course
                                       }).First();
 
             var name = (await _teachers.Find(b => b.Email == username)).Select(b => b.Name+" "+b.Surnames).FirstOrDefault();
@@ -39,11 +42,21 @@ namespace API_GroupDetail.Services
 
             return new MasterResponse
             {
-                    GroupName = groupNameAndSubject.name.ToUpper(),
-                  SubjectName = groupNameAndSubject.subject.ToUpper(),
+                    GroupName = groupNameSubjectCourse.name.ToUpper(),
+                  SubjectName = groupNameSubjectCourse.subject.ToUpper(),
                      UserName = name.ToUpper(),
-                StudentsCount = students.Count
+                StudentsCount = students.Count,
+                     Session  = session,
+                     Course   = groupNameSubjectCourse.course,
+      QuantityStudentAdvance  = 100 //await GetQuantityStudentsCompleteSession(students, session, groupNameSubjectCourse.course)
             };
+        }
+
+        private async Task<int> GetQuantityStudentsCompleteSession(List<StudentGroup> students, int session, int course)
+        {
+            var answers = await _answers.Find((b) => students.Select(b => b.UserName).Contains(b.UserName));
+
+            return 15;
         }
     }
 }
