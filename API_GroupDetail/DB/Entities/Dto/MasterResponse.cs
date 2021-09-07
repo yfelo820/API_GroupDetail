@@ -14,5 +14,6 @@ namespace API_GroupDetail.DB.Entities.Dto
         public int Session { get; set; }
         public int Course { get; set; }
         public int QuantityStudentAdvance { get; set; }
+        public List<string> Activities { get; set; }
     }
 }

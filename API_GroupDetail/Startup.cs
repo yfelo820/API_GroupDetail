@@ -29,6 +29,7 @@ namespace API_GroupDetail
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<SchoolsDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("SchoolsConnection")));
+            services.AddDbContext<ContentDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("ContentConnection")));
             services.AddControllers();
             IoC.AddDependency(services);
         }

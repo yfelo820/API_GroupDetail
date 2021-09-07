@@ -22,6 +22,7 @@ namespace API_GroupDetail.Middleware
             services.AddTransient<ISchoolsRepository<StudentProgress>, SchoolsRepository<StudentProgress>>();*/
             //services.AddTransient<ISchoolsRepository, SchoolsRepository>();
             services.AddScoped(typeof(ISchoolsRepository<>), typeof(SchoolsRepository<>));
+            services.AddScoped(typeof(IContentRepository<>), typeof(ContentRepository<>));
             services.AddTransient<IMasterService, MasterService>();            
             return services;
 
