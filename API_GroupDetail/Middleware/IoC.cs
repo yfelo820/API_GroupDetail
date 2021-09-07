@@ -14,12 +14,14 @@ namespace API_GroupDetail.Middleware
     {
 
         public static IServiceCollection AddDependency(this IServiceCollection services)
-        {
+        {   /*
             services.AddTransient<ISchoolsRepository<Teacher>, SchoolsRepository<Teacher>>();
             services.AddTransient<ISchoolsRepository<Group>, SchoolsRepository<Group>>();
             services.AddTransient<ISchoolsRepository<StudentAnswer>, SchoolsRepository<StudentAnswer>>();
             services.AddTransient<ISchoolsRepository<StudentGroup>, SchoolsRepository<StudentGroup>>();
-            services.AddTransient<ISchoolsRepository<StudentProgress>, SchoolsRepository<StudentProgress>>();
+            services.AddTransient<ISchoolsRepository<StudentProgress>, SchoolsRepository<StudentProgress>>();*/
+            //services.AddTransient<ISchoolsRepository, SchoolsRepository>();
+            services.AddScoped(typeof(ISchoolsRepository<>), typeof(SchoolsRepository<>));
             services.AddTransient<IMasterService, MasterService>();            
             return services;
 
