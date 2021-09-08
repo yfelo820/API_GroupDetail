@@ -14,6 +14,14 @@ namespace API_GroupDetail.DB.Entities.Dto
         public int Session { get; set; }
         public int Course { get; set; }
         public int QuantityStudentAdvance { get; set; }
-        public List<string> Activities { get; set; }
+        public List<ActivitiesAndState> Activities { get; set; }
+    }
+
+    public class ActivitiesAndState
+    {
+        public string Activity { get; set; }
+        public float AdvancePercentage { get; set; }
+        public float ReViewPercentage { get; set; }
+        public float ReInforcePercentage { get; set; }
     }
 }

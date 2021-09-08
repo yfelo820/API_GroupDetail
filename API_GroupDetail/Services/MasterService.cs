@@ -2,6 +2,7 @@
 using API_GroupDetail.DB.Entities.Dto;
 using API_GroupDetail.DB.Repository;
 using API_GroupDetail.Factories.CompleteSessionFactory;
+using API_GroupDetail.Factories.Config;
 using API_GroupDetail.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace API_GroupDetail.Services
         private readonly IContentRepository<Subject> _subjects;
         private readonly IContentRepository<Language> _languages;
         private readonly IContentRepository<Course> _courses;
+        private List<ActivitiesAndState> Activities { get; set; }
 
 
 
@@ -40,6 +42,7 @@ namespace API_GroupDetail.Services
             _subjects = subjects;
             _languages = languages;
             _courses = courses;
+            Activities = new List<ActivitiesAndState>();
         }
 
         public async Task<MasterResponse> GetMasterResponse(Guid groupId, string username, int session)
@@ -55,8 +58,9 @@ namespace API_GroupDetail.Services
 
             var name = (await _teachers.Find(b => b.Email == username)).Select(b => b.Name+" "+b.Surnames).FirstOrDefault();
             var students = (await _students.Find(b => b.GroupId == groupId));
-            var quantity = await GetQuantityStudentsCompleteSession(students, session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
             var activities = await GetActivities(session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
+            var quantity = await GetQuantityStudentsCompleteSession(students, session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
+            
 
             return new MasterResponse
             {
@@ -66,12 +70,12 @@ namespace API_GroupDetail.Services
                 StudentsCount = students.Count,
                 Session = session,
                 Course = groupNameSubjectCourse.course,
-                QuantityStudentAdvance = quantity,
-                Activities = activities
+                Activities = activities,
+                QuantityStudentAdvance = quantity
             };
         }
 
-        private async Task<List<string>> GetActivities(int session, int course, string subjectKey, string languageKey)
+        private async Task<List<ActivitiesAndState>> GetActivities(int session, int course, string subjectKey, string languageKey)
         {
             var subjectId = (await _subjects.Find(b => b.Key == subjectKey)).Select(b=>b.Id).First();
             var languageId = (await _languages.Find(b => b.Code == languageKey)).Select(b => b.Id).First();
@@ -82,15 +86,15 @@ namespace API_GroupDetail.Services
                                             && b.CourseId == courseId
                                             && b.Session == session))
                                             .OrderByDescending(b => b.Difficulty)
+                                            .ThenBy(b=>b.Stage)
                                             .GroupBy(b=>b.Stage);
             
-            var listActivites = new List<string>();
             foreach (var activity in activities)
             {
-                listActivites.Add(activity.Select(b => b.ShortDescription).First());               
+                Activities.Add(new ActivitiesAndState { Activity = activity.Select(b => b.ShortDescription).First() });               
             }
 
-            return listActivites;
+            return Activities;
         }
 
         private async Task<int> GetQuantityStudentsCompleteSession(List<StudentGroup> students, int session, int course, string subjectKey, string languageKey)
@@ -100,13 +104,21 @@ namespace API_GroupDetail.Services
                                                   && b.SubjectKey == subjectKey
                                                   && b.LanguageKey == languageKey
                                                   && b.Course == course
-                                                  && b.Session == session);            
+                                                  && b.Session == session);
 
-            if (!answers.Any()) return 0;
+            var quantity = 0;
+
+            var stagesForForwardSuccessfuly = 0;
+
+            float countAdvance = 0;
+            float countReView = 0;
+            float countReInforce = 0;
+
+            if (!answers.Any()) quantity = 0;
 
             else
             {
-                var quantity = 0;
+                
                 foreach (var student in studentsUsers)
                 {
                     var studentAnswers = answers.Where(b => b.UserName == student).OrderByDescending(b=>b.CreatedAt);
@@ -121,11 +133,34 @@ namespace API_GroupDetail.Services
                     var sessionFactory = new CompleteSessionCalculatorFactory();
                     var sesssionCalculator = sessionFactory.Create(subjectKey);
                     var passesAllStagesSession = sesssionCalculator.CompletedSession(studentAnwserNotRepeatStage);
+                        stagesForForwardSuccessfuly = sesssionCalculator.StagesForForwardSuccessfuly();
 
-                    quantity += (passesAllStagesSession) ? 1 : 0;
+                    quantity += (passesAllStagesSession) ? 1 : 0; 
+                }               
+            }
+
+            var groupingAnswers = answers.GroupBy(b => b.Stage);
+
+            foreach (var groupAnswers in groupingAnswers)
+            {
+                var stageAnswersByUser = groupAnswers.Select(b => b).GroupBy(b=>b.UserName);
+                foreach (var stageUserAnswers in stageAnswersByUser)
+                {
+                    var userAnswers = stageUserAnswers.Select(b => b);
+                    if (userAnswers.Count() == 1 && userAnswers.First().Grade >= Config.PassGrade) countAdvance++;
+                    else if (userAnswers.Count() == 2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReView++;
+                    else if (userAnswers.Count() >  2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReInforce++;
                 }
-                return quantity;
-            }            
+
+                Activities[groupAnswers.Key - 1].AdvancePercentage = (countAdvance / students.Count) * 100;
+                Activities[groupAnswers.Key - 1].ReInforcePercentage = (countReInforce / students.Count) * 100;
+                Activities[groupAnswers.Key - 1].ReViewPercentage  = (countReView / students.Count) * 100;
+
+                countAdvance = 0;
+                countReInforce = 0;
+                countReView = 0;
+            }
+            return quantity;
         }
     }
 }
