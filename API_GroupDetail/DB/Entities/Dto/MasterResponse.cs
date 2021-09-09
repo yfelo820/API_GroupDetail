@@ -14,6 +14,9 @@ namespace API_GroupDetail.DB.Entities.Dto
         public int Session { get; set; }
         public int Course { get; set; }
         public int QuantityStudentAdvance { get; set; }
+        public List<string> StudentNeededReInforce { get; set; }
+        public List<string> StudentStillInSession { get; set; }
+        public List<string> StudentNeverStartSession { get; set; }
         public List<ActivitiesAndState> Activities { get; set; }
     }
 
@@ -23,5 +26,13 @@ namespace API_GroupDetail.DB.Entities.Dto
         public float AdvancePercentage { get; set; }
         public float ReViewPercentage { get; set; }
         public float ReInforcePercentage { get; set; }
+    }
+
+    public class DetailListStudentAndCountPasses
+    {
+        public List<string> StudentNeededReInforce { get; set; }
+        public List<string> StudentStillInSession { get; set; }
+        public List<string> StudentNeverStartSession { get; set; }
+        public int Quantity { get; set; }
     }
 }

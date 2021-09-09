@@ -59,7 +59,7 @@ namespace API_GroupDetail.Services
             var name = (await _teachers.Find(b => b.Email == username)).Select(b => b.Name+" "+b.Surnames).FirstOrDefault();
             var students = (await _students.Find(b => b.GroupId == groupId));
             var activities = await GetActivities(session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
-            var quantity = await GetQuantityStudentsCompleteSession(students, session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
+            var detailsStudentList = await GetQuantityStudentsCompleteSession(students, session, groupNameSubjectCourse.course, groupNameSubjectCourse.subject, groupNameSubjectCourse.language);
             
 
             return new MasterResponse
@@ -71,7 +71,10 @@ namespace API_GroupDetail.Services
                 Session = session,
                 Course = groupNameSubjectCourse.course,
                 Activities = activities,
-                QuantityStudentAdvance = quantity
+                QuantityStudentAdvance = detailsStudentList.Quantity,
+                 StudentNeededReInforce = detailsStudentList.StudentNeededReInforce,
+                 StudentNeverStartSession = detailsStudentList.StudentNeverStartSession,
+                 StudentStillInSession = detailsStudentList.StudentStillInSession
             };
         }
 
@@ -97,7 +100,7 @@ namespace API_GroupDetail.Services
             return Activities;
         }
 
-        private async Task<int> GetQuantityStudentsCompleteSession(List<StudentGroup> students, int session, int course, string subjectKey, string languageKey)
+        private async Task<DetailListStudentAndCountPasses> GetQuantityStudentsCompleteSession(List<StudentGroup> students, int session, int course, string subjectKey, string languageKey)
         {
             var studentsUsers = students.Select(b => b.UserName).ToList();
             var answers = await _answers.Find((b) => studentsUsers.Contains(b.UserName)
@@ -114,29 +117,44 @@ namespace API_GroupDetail.Services
             float countReView = 0;
             float countReInforce = 0;
 
-            if (!answers.Any()) quantity = 0;
+            var studentNeededReInforce = new List<string>();
+            var studentStillInSession = new List<string>();
+            var studentNeverStartSession = new List<string>();
+
+            if (!answers.Any()) 
+            { 
+                quantity = 0;
+                studentNeverStartSession.AddRange(students.Select(b => b.UserName));
+            }
 
             else
             {
-                
+
                 foreach (var student in studentsUsers)
                 {
-                    var studentAnswers = answers.Where(b => b.UserName == student).OrderByDescending(b=>b.CreatedAt);
+                    var studentAnswers = answers.Where(b => b.UserName == student).OrderByDescending(b => b.CreatedAt);
 
-                    var studentAnwserNotRepeatStage = new List<StudentAnswer>();
-                    foreach (var stdAnswer in studentAnswers)
+                    if (studentAnswers.Any())
                     {
-                        if (studentAnwserNotRepeatStage.Where(b => b.Stage == stdAnswer.Stage).Count() == 0)
-                            studentAnwserNotRepeatStage.Add(stdAnswer);
-                    }
 
-                    var sessionFactory = new CompleteSessionCalculatorFactory();
-                    var sesssionCalculator = sessionFactory.Create(subjectKey);
-                    var passesAllStagesSession = sesssionCalculator.CompletedSession(studentAnwserNotRepeatStage);
+                        var studentAnwserNotRepeatStage = new List<StudentAnswer>();
+                        foreach (var stdAnswer in studentAnswers)
+                        {
+                            if (studentAnwserNotRepeatStage.Where(b => b.Stage == stdAnswer.Stage).Count() == 0)
+                                studentAnwserNotRepeatStage.Add(stdAnswer);
+                        }
+
+                        var sessionFactory = new CompleteSessionCalculatorFactory();
+                        var sesssionCalculator = sessionFactory.Create(subjectKey);
+                        var passesAllStagesSession = sesssionCalculator.CompletedSession(studentAnwserNotRepeatStage);
                         stagesForForwardSuccessfuly = sesssionCalculator.StagesForForwardSuccessfuly();
 
-                    quantity += (passesAllStagesSession) ? 1 : 0; 
-                }               
+                        quantity += (passesAllStagesSession) ? 1 : 0;
+                        if (!passesAllStagesSession) studentStillInSession.Add(student);
+                        if (studentAnswers.GroupBy(b => b.Stage).Any(b => b.Count() > 2)) studentNeededReInforce.Add(student);
+                    }
+                    else studentNeverStartSession.Add(student);
+                }
             }
 
             var groupingAnswers = answers.GroupBy(b => b.Stage);
@@ -160,7 +178,13 @@ namespace API_GroupDetail.Services
                 countReInforce = 0;
                 countReView = 0;
             }
-            return quantity;
+            return new DetailListStudentAndCountPasses 
+            { 
+                 Quantity = quantity,
+                  StudentNeededReInforce = studentNeededReInforce,
+                  StudentNeverStartSession = studentNeverStartSession,
+                  StudentStillInSession = studentStillInSession
+            };
         }
     }
 }
