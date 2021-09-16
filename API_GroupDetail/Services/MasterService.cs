@@ -110,12 +110,7 @@ namespace API_GroupDetail.Services
                                                   && b.Session == session);
 
             var quantity = 0;
-
             var stagesForForwardSuccessfuly = 0;
-
-            float countAdvance = 0;
-            float countReView = 0;
-            float countReInforce = 0;
 
             var studentNeededReInforce = new List<string>();
             var studentStillInSession = new List<string>();
@@ -157,27 +152,8 @@ namespace API_GroupDetail.Services
                 }
             }
 
-            var groupingAnswers = answers.GroupBy(b => b.Stage);
-
-            foreach (var groupAnswers in groupingAnswers)
-            {
-                var stageAnswersByUser = groupAnswers.Select(b => b).GroupBy(b=>b.UserName);
-                foreach (var stageUserAnswers in stageAnswersByUser)
-                {
-                    var userAnswers = stageUserAnswers.Select(b => b);
-                    if (userAnswers.Count() == 1 && userAnswers.First().Grade >= Config.PassGrade) countAdvance++;
-                    else if (userAnswers.Count() == 2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReView++;
-                    else if (userAnswers.Count() >  2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReInforce++;
-                }
-
-                Activities[groupAnswers.Key - 1].AdvancePercentage = (countAdvance / students.Count) * 100;
-                Activities[groupAnswers.Key - 1].ReInforcePercentage = (countReInforce / students.Count) * 100;
-                Activities[groupAnswers.Key - 1].ReViewPercentage  = (countReView / students.Count) * 100;
-
-                countAdvance = 0;
-                countReInforce = 0;
-                countReView = 0;
-            }
+            GetPercentageByStage(answers, studentsUsers.Count);
+            
             return new DetailListStudentAndCountPasses 
             { 
                  Quantity = quantity,
@@ -185,6 +161,35 @@ namespace API_GroupDetail.Services
                   StudentNeverStartSession = studentNeverStartSession,
                   StudentStillInSession = studentStillInSession
             };
+        }
+
+        private void GetPercentageByStage(List<StudentAnswer> answers, int count)
+        {
+            var groupingAnswers = answers.GroupBy(b => b.Stage);
+
+            float countAdvance = 0;
+            float countReView = 0;
+            float countReInforce = 0;
+
+            foreach (var groupAnswers in groupingAnswers)
+            {
+                var stageAnswersByUser = groupAnswers.Select(b => b).GroupBy(b => b.UserName);
+                foreach (var stageUserAnswers in stageAnswersByUser)
+                {
+                    var userAnswers = stageUserAnswers.Select(b => b);
+                    if (userAnswers.Count() == 1 && userAnswers.First().Grade >= Config.PassGrade) countAdvance++;
+                    else if (userAnswers.Count() == 2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReView++;
+                    else if (userAnswers.Count() > 2 && userAnswers.OrderByDescending(b => b.CreatedAt).First().Grade >= Config.PassGrade) countReInforce++;
+                }
+
+                Activities[groupAnswers.Key - 1].AdvancePercentage = (countAdvance / count) * 100;
+                Activities[groupAnswers.Key - 1].ReInforcePercentage = (countReInforce / count) * 100;
+                Activities[groupAnswers.Key - 1].ReViewPercentage = (countReView / count) * 100;
+
+                countAdvance = 0;
+                countReInforce = 0;
+                countReView = 0;
+            }
         }
     }
 }
